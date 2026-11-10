@@ -322,3 +322,20 @@ def test_google_meta_refresh_interstitial_is_followed(tmp_path, monkeypatch):
 
     http = httpx.Client(transport=httpx.MockTransport(handler))
     assert pipeline.resolve_google_url("https://google.com/goto?url=X", Cache(tmp_path), http) == "https://www.lodgecastiron.com/pages/how-to-clean"
+
+
+def test_throttled_google_hop_is_retried(tmp_path, monkeypatch):
+    from content_brief import pipeline
+    from content_brief.api import Cache
+
+    monkeypatch.setattr(pipeline, "check_public_destination", lambda url: None)
+    calls = {"n": 0}
+
+    def handler(request):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return httpx.Response(200, text="<html>unusual traffic</html>")
+        return httpx.Response(302, headers={"location": "https://neilpatel.com/technical-seo/"})
+
+    http = httpx.Client(transport=httpx.MockTransport(handler))
+    assert pipeline.resolve_google_url("https://google.com/goto?url=Z", Cache(tmp_path), http) == "https://neilpatel.com/technical-seo/"

@@ -6,6 +6,7 @@ import html
 import ipaddress
 import re
 import socket
+import time
 from copy import deepcopy
 from dataclasses import asdict, replace
 from decimal import Decimal
@@ -160,6 +161,11 @@ META_REFRESH = re.compile(
 )
 
 
+# Google throttles a burst of goto requests with a page that has no next hop.
+# The same link resolves a few seconds later, so retry before giving up.
+RETRY_DELAYS = (2.0, 5.0)
+
+
 def resolve_google_url(url: str, cache: Cache, http: httpx.Client | None = None,
                        allow_network: bool = True) -> str | None:
     """Follow Google redirects only. Validate the public exit before returning it."""
@@ -170,6 +176,15 @@ def resolve_google_url(url: str, cache: Cache, http: httpx.Client | None = None,
         return cached["url"]
     if not allow_network:
         return None
+    for delay in RETRY_DELAYS:
+        try:
+            return _follow_google(url, cache, http)
+        except APIError:
+            time.sleep(delay)
+    return _follow_google(url, cache, http)
+
+
+def _follow_google(url: str, cache: Cache, http: httpx.Client | None) -> str:
     own_http = http is None
     http = http or httpx.Client(timeout=30, trust_env=False, follow_redirects=False)
     current, seen = url, set()

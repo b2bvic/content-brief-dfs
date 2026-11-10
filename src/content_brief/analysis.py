@@ -251,7 +251,11 @@ def entity_table(pages: list[Page], analyzer: Analyzer) -> list[dict]:
     candidates = {}
     for page in pages:
         for text, kind in analyzer.entity_candidates(page.text):
+            # Strip emoji, bullets, and joiners left at either end ("❌ Lower", "Review &").
+            text = re.sub(r"^[^A-Za-z0-9]+|[^A-Za-z0-9.]+$", "", text)
             words = text.split()
+            while words and words[-1].casefold() in {"and", "or", "&", "of", "the"}:
+                words.pop()
             while words and words[0].casefold().removesuffix("'s") in LEADING:
                 words.pop(0)
             text = " ".join(words)
@@ -308,6 +312,9 @@ BOILERPLATE_HEADING = re.compile(
 )
 
 
+LIST_NUMBER = re.compile(r"^\s*(?:#|no\.?\s*)?\d+\s*[.):\-–]\s*", re.IGNORECASE)
+
+
 def without_keyword(tokens: set[str], keyword: set[str]) -> set[str]:
     """Drop the keyword's own words. They appear everywhere and match everything."""
     rest = tokens - keyword
@@ -321,6 +328,10 @@ def topic_clusters(
     for page in pages:
         for heading in page.headings:
             if BOILERPLATE_HEADING.search(heading["text"]):
+                continue
+            # Listicle numbering ("2. Loopex Digital") is position, not topic.
+            heading = {**heading, "text": LIST_NUMBER.sub("", heading["text"]).strip()}
+            if not heading["text"]:
                 continue
             tokens = without_keyword(analyzer.content_tokens(heading["text"]), keyword)
             if not tokens:

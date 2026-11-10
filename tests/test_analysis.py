@@ -299,3 +299,17 @@ def test_keyword_words_do_not_merge_topics_or_hide_gaps():
     assert "Other Posts You Might Enjoy" not in labels
     assert len(result["topics"]) == 2
     assert result["queries"][0]["gap"]
+
+
+def test_listicle_numbers_and_entity_debris_are_cleaned():
+    pages = [
+        page("We like Loopex Digital. ❌ Lower costs. Review & Ratings matter.", 1,
+             [{"level": 3, "text": "2. Loopex Digital"}]),
+        page("Teams hire Loopex Digital. Review & Ratings again.", 2,
+             [{"level": 3, "text": "7) Loopex Digital"}]),
+    ]
+    result = analyze(pages, [], Analyzer(False))
+    assert [t["label"] for t in result["topics"]] == ["Loopex Digital"]
+    labels = {e["entity"] for e in result["entities"]}
+    assert "Loopex Digital" in labels
+    assert not any(l.endswith("&") or not l[0].isalnum() for l in labels)

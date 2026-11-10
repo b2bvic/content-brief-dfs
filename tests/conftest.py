@@ -18,6 +18,9 @@ def offline(monkeypatch):
     monkeypatch.setattr(socket.socket, "connect_ex", denied)
     monkeypatch.setattr(socket, "create_connection", denied)
     monkeypatch.setattr(socket, "getaddrinfo", denied)
+    from content_brief import pipeline
+
+    monkeypatch.setattr(pipeline, "RETRY_DELAYS", (0, 0))
     monkeypatch.delenv("DATAFORSEO_LOGIN", raising=False)
     monkeypatch.delenv("DATAFORSEO_PASSWORD", raising=False)
     # Keep temporary output inside the worktree, including pytest's numbered dirs.
