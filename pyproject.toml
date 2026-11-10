@@ -1,0 +1,28 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "content-brief-dfs"
+version = "0.1.0"
+description = "Deterministic writer briefs and draft scoring from DataForSEO competitor data"
+readme = "README.md"
+requires-python = ">=3.11,<3.15"
+license = "MIT"
+dependencies = ["httpx>=0.28,<0.29", "beautifulsoup4>=4.14,<5"]
+
+[project.optional-dependencies]
+nlp = ["spacy>=3.8,<3.9"]
+
+[project.scripts]
+content-brief = "content_brief.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=9,<10"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/content_brief"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --basetemp=.cache/pytest-tmp"

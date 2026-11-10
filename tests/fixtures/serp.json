@@ -1,0 +1,220 @@
+{
+  "version": "0.1.20200129",
+  "status_code": 20000,
+  "status_message": "Ok.",
+  "time": "0.3059 sec.",
+  "cost": 0.003,
+  "tasks_count": 1,
+  "tasks_error": 0,
+  "tasks": [
+    {
+      "id": "11151456-0696-0066-0000-002a5915da37",
+      "status_code": 20000,
+      "status_message": "Ok.",
+      "time": "0.0952 sec.",
+      "cost": 0.003,
+      "result_count": 1,
+      "path": [
+        "v3",
+        "serp",
+        "google",
+        "organic",
+        "advanced",
+        "live"
+      ],
+      "data": {
+        "api": "serp",
+        "function": "live",
+        "se": "google",
+        "se_type": "organic",
+        "language_name": "English",
+        "location_name": "United States",
+        "keyword": "flight ticket new york san francisco",
+        "tag": "tag2",
+        "device": "desktop",
+        "os": "windows"
+      },
+      "result": [
+        {
+          "keyword": "flight ticket new york san francisco",
+          "type": "organic",
+          "se_domain": "google.com",
+          "location_code": 2840,
+          "language_code": "en",
+          "check_url": "https://www.google.com/search?q=flight%20ticket%20new%20york%20san%20francisco&num=100&hl=en&gl=US&gws_rd=cr&ie=UTF-8&oe=UTF-8&uule=w+CAIQIFISCQs2MuSEtepUEUK33kOSuTsc",
+          "datetime": "2019-11-15 12:57:46 +00:00",
+          "spell": null,
+          "refinement_chips": {
+            "type": "refinement_chips",
+            "xpath": "/html[1]/body[1]/div[3]/div[1]/div[9]/div[1]/div[1]/div[3]/div[1]/div[1]",
+            "items": [
+              {
+                "type": "refinement_chips_element",
+                "title": "Remote",
+                "url": "https://www.google.com/search?num=100&sca_esv=427163c40a0d98b7&hl=en&gl=US&glp=1&q=bristol+temp+agencies+remote&uds=ADvngMjcH0KdF7qGWtwTBrP0nt7drlQNXJ_q6WhUnfcnlFQAOVqvQ09aiEx7jUP4Wb5sg6FzKTGyEoBQg36hfgreicnnhtBQv8H25iRkUIMWBSqTcu0nGLObB57jKDn4sIHqgjkv6AqtXzA0gTV6n6-p1_aOUPMmYdgJOPy5xybgxI0ZY3-OZUg&sa=X&ved=2ahUKEwjEjMPzrvyIAxVgpIkEHYTyBqEQxKsJegQIHRAB&ictx=0",
+                "domain": "www.google.com",
+                "options": null
+              },
+              {
+                "type": "refinement_chips_element",
+                "title": "Date posted",
+                "url": null,
+                "domain": null,
+                "options": [
+                  {
+                    "type": "refinement_chips_option",
+                    "title": "Yesterday",
+                    "url": "https://www.google.com/search?num=100&sca_esv=427163c40a0d98b7&hl=en&gl=US&glp=1&q=bristol+temp+agencies+since+yesterday&uds=ADvngMjcH0KdF7qGWtwTBrP0nt7d1cxhUU_4I1tnZ_YIEcACz8ZYvzwewv2vtaifFRGAtrClbFOcrHbTAbAeXm1jREcC6VS1VsCvY-sITnX4ozb-ILgfWEVwq_Z5ROUTUSIPShEnKXD5sUUbZbocrG609xSmt2d98g8y8m1lGjX2kp2G7tWTnMoyaYhx7tPHFsc1SlxiTTuylOmQpyaET98nEnMhDFUw8hSQnpfQcpEDEdBLwrOxN3gOZC4RtcHuKTyeCrFRnaDjQ17dNosh1yiBWrSXB9e1dQF-1Pt17wXCHwRUCH6wH0DbAN-oCNd7lMT2v24eI8rDkLQP3kTLpzGMUZReaWIAPw&sa=X&ved=2ahUKEwjEjMPzrvyIAxVgpIkEHYTyBqEQkbEKegQIDxAD",
+                    "domain": "www.google.com"
+                  },
+                  {
+                    "type": "refinement_chips_option",
+                    "title": "Last 3 days",
+                    "url": "https://www.google.com/search?num=100&sca_esv=427163c40a0d98b7&hl=en&gl=US&glp=1&q=bristol+temp+agencies+in+the+last+3+days&uds=ADvngMjcH0KdF7qGWtwTBrP0nt7dLQVdkfQJDu14-gF_eQoKa39tQdXyMUfu3HnnM3Pu4g5hOzwEez_H8t-yULnPJEgal7YGml0mtSaIuH3YeuIhPq5mBSo_ECo7hOJVwSRGkksXQg-RdTy8GhoT8Qm-ZFkyAQnSLmnlmv0Rm042YAlQ6JFqnfOW0VIOgTeTdYm6SLpzQ3a6YSvEf2tau3pEKxnGWKleL613vj0tLBWg4Jhsa0trdMkFPHDQYhc2caGQ8cmSYU4cqdB2Eq3PsNGgjgebvt7_7bbvjixC19O4L9ZB02rwY0EP30_mYAeTG9lYAx8ZJvGDslVLp0DHS93P8ynaiA7Bbw&sa=X&ved=2ahUKEwjEjMPzrvyIAxVgpIkEHYTyBqEQkbEKegQIDxAE",
+                    "domain": "www.google.com"
+                  }
+                ]
+              }
+            ]
+          },
+          "item_types": [
+            "answer_box",
+            "app",
+            "carousel",
+            "multi_carousel",
+            "featured_snippet",
+            "google_flights",
+            "google_reviews",
+            "images",
+            "jobs",
+            "knowledge_graph",
+            "local_pack",
+            "hotels_pack",
+            "map",
+            "organic",
+            "paid",
+            "people_also_ask",
+            "related_searches",
+            "people_also_search",
+            "shopping",
+            "top_stories",
+            "twitter",
+            "video",
+            "events",
+            "math_solver",
+            "recipes",
+            "top_sights",
+            "scholarly_articles",
+            "popular_products",
+            "questions_and_answers",
+            "find_results_on",
+            "stocks_box",
+            "commercial_units",
+            "local_services",
+            "google_hotels",
+            "currency_box",
+            "short_videos",
+            "refine_products",
+            "perspectives",
+            "discussions_and_forums",
+            "compare_sites",
+            "ai_overview"
+          ],
+          "se_results_count": 85600000,
+          "pages_count": 1,
+          "items_count": 4,
+          "items": [
+            {
+              "type": "organic",
+              "rank_group": 26,
+              "rank_absolute": 30,
+              "title": "Apple iPhone 12 Pro 5G | 4 colors in 512GB, 256GB & 128GB",
+              "url": "https://www.t-mobile.com/cell-phone/apple-iphone-12-pro"
+            },
+            {
+              "type": "related_searches",
+              "rank_group": 1,
+              "rank_absolute": 8,
+              "items": [
+                "iphone xr",
+                "iphone xs",
+                "iphone 11",
+                "iphone price",
+                "iphone 8",
+                "iphone xs max",
+                "iphone 11 price",
+                "iphone xs price"
+              ]
+            },
+            {
+              "type": "people_also_ask",
+              "rank_group": 1,
+              "rank_absolute": 3,
+              "items": [
+                {
+                  "type": "people_also_ask_element",
+                  "title": "What are the symptoms of HIDS disease?"
+                }
+              ]
+            },
+            {
+              "type": "ai_overview",
+              "rank_group": 1,
+              "rank_absolute": 1,
+              "asynchronous_ai_overview": false,
+              "items": [
+                {
+                  "type": "ai_overview_element",
+                  "rank_group": 1,
+                  "rank_absolute": 1,
+                  "title": null,
+                  "text": "The BMW M4 F82 is a high-performance coupe known for its aggressive styling and powerful engine.",
+                  "references": [
+                    {
+                      "url": "https://www.autoevolution.com/cars/bmw-m4-f82-2014.html#:~:text=The%20load%20capacity%20was%20more,4%20GASOLINE%20Engines",
+                      "title": "BMW M4 Coupe (F82) ( (2014-2020)) Photos, engines & full specs"
+                    },
+                    {
+                      "url": "https://www.pistonheads.com/news/ph-driven/2014-bmw-m3-and-m4-f80-f82--review/29973",
+                      "title": "2014 BMW M3 and M4 (F80/F82) | Review - PistonHeads UK"
+                    }
+                  ]
+                },
+                {
+                  "type": "ai_overview_expanded_element",
+                  "title": "Step 4",
+                  "text": "Calculate Springfield Division sales for Quarter 2",
+                  "references": []
+                },
+                {
+                  "type": "ai_overview_video_element",
+                  "title": "Anwar And Cars",
+                  "url": "https://www.youtube.com/watch?v=HmyTDeZMgFA&t=684"
+                },
+                {
+                  "type": "ai_overview_table_element",
+                  "references": []
+                }
+              ],
+              "references": [
+                {
+                  "url": "https://www.autoevolution.com/cars/bmw-m4-f82-2014.html#:~:text=The%20load%20capacity%20was%20more,4%20GASOLINE%20Engines",
+                  "title": "BMW M4 Coupe (F82) ( (2014-2020)) Photos, engines & full specs"
+                },
+                {
+                  "url": "https://www.pistonheads.com/news/ph-driven/2014-bmw-m3-and-m4-f80-f82--review/29973",
+                  "title": "2014 BMW M3 and M4 (F80/F82) | Review - PistonHeads UK"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "_fixture": {
+    "source_url": "https://docs.dataforseo.com/v3/serp/google/organic/live/advanced/",
+    "retrieved": "2026-11-10",
+    "adaptation": "Reduced documented JSON example: envelope, nesting, costs, and selected values retained. Long prose and optional fields removed or replaced with explicitly synthetic test text. Historical example costs are not current prices."
+  }
+}

@@ -1,0 +1,116 @@
+{
+  "version": "0.1.20240801",
+  "status_code": 20000,
+  "status_message": "Ok.",
+  "time": "0.0995 sec.",
+  "cost": 0.0103,
+  "tasks_count": 1,
+  "tasks_error": 0,
+  "tasks": [
+    {
+      "id": "08221812-1535-0387-0000-53d53d3e60c5",
+      "status_code": 20000,
+      "status_message": "Ok.",
+      "time": "0.0326 sec.",
+      "cost": 0.0103,
+      "result_count": 1,
+      "path": [
+        "v3",
+        "dataforseo_labs",
+        "google",
+        "related_keywords",
+        "live"
+      ],
+      "data": {
+        "api": "dataforseo_labs",
+        "function": "related_keywords",
+        "se_type": "google",
+        "keyword": "phone",
+        "language_name": "English",
+        "location_code": 2840,
+        "limit": 3
+      },
+      "result": [
+        {
+          "se_type": "google",
+          "seed_keyword": "phone",
+          "seed_keyword_data": null,
+          "location_code": 2840,
+          "language_code": "en",
+          "total_count": 9,
+          "items_count": 3,
+          "items": [
+            {
+              "se_type": "google",
+              "keyword_data": {
+                "keyword": "phone",
+                "keyword_info": {
+                  "search_volume": 368000,
+                  "last_updated_time": "2024-08-11 13:24:34 +00:00"
+                }
+              },
+              "depth": 0,
+              "related_keywords": [
+                "phone app",
+                "phone call",
+                "phone app download",
+                "phone call app",
+                "phone samsung",
+                "phone definition",
+                "phone app on android",
+                "my phone app"
+              ]
+            },
+            {
+              "se_type": "google",
+              "keyword_data": {
+                "keyword": "phone call",
+                "keyword_info": {
+                  "search_volume": 27100,
+                  "last_updated_time": "2024-08-08 14:16:10 +00:00"
+                }
+              },
+              "depth": 1,
+              "related_keywords": [
+                "phone call online",
+                "phone call app",
+                "free phone call",
+                "phone app",
+                "phone call app download",
+                "i want to make a phone call on my phone",
+                "phone by google",
+                "make a phone call to someone"
+              ]
+            },
+            {
+              "se_type": "google",
+              "keyword_data": {
+                "keyword": "phone app",
+                "keyword_info": {
+                  "search_volume": 22200,
+                  "last_updated_time": "2024-08-11 20:06:52 +00:00"
+                }
+              },
+              "depth": 1,
+              "related_keywords": [
+                "phone app download",
+                "phone app on android",
+                "my phone app",
+                "phone app free",
+                "google phone app",
+                "phone call",
+                "phone app download free",
+                "phone by google"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "_fixture": {
+    "source_url": "https://docs.dataforseo.com/v3/dataforseo_labs/google/related_keywords/live/",
+    "retrieved": "2026-11-10",
+    "adaptation": "Reduced documented JSON example: envelope, nesting, costs, and selected values retained. Long prose and optional fields removed or replaced with explicitly synthetic test text. Historical example costs are not current prices."
+  }
+}

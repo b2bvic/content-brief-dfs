@@ -1,0 +1,87 @@
+{
+  "version": "0.1.20250526",
+  "status_code": 20000,
+  "status_message": "Ok.",
+  "time": "0.2489 sec.",
+  "cost": 0.000125,
+  "tasks_count": 1,
+  "tasks_error": 0,
+  "tasks": [
+    {
+      "id": "06021259-1535-0495-0000-ba2e85efc28e",
+      "status_code": 20000,
+      "status_message": "Ok.",
+      "time": "0.2044 sec.",
+      "cost": 0.000125,
+      "result_count": 1,
+      "path": [
+        "v3",
+        "on_page",
+        "content_parsing",
+        "live"
+      ],
+      "data": {
+        "api": "on_page",
+        "function": "content_parsing",
+        "url": "https://dataforseo.com/blog/a-versatile-alternative-to-google-trends-exploring-the-power-of-dataforseo-trends-api",
+        "markdown_view": true
+      },
+      "result": [
+        {
+          "crawl_progress": "finished",
+          "crawl_status": null,
+          "items_count": 1,
+          "items": [
+            {
+              "type": "content_parsing_element",
+              "fetch_time": "2025-06-02 06:59:10 +00:00",
+              "status_code": 200,
+              "page_content": {
+                "main_topic": [
+                  {
+                    "h_title": "A Versatile Alternative to Google Trends: Exploring the Power of DataForSEO Trends API",
+                    "main_title": "A Versatile Alternative to Google Trends: Exploring the Power of DataForSEO Trends API",
+                    "author": "Anatolii",
+                    "language": "en",
+                    "level": 1,
+                    "primary_content": [
+                      {
+                        "text": "Search trends data is a treasure trove of insights. Synthetic test article: Google Trends and DataForSEO help compare search interest. A research team studies battery storage, solar panels, and electricity demand. Each tool reports search patterns across regions. Writers compare those patterns before planning an article. Clear headings connect technical details with reader questions. Battery storage helps households retain solar power for later use. A practical guide compares capacity, installation, maintenance, and expected performance. Readers need examples that connect system size with household demand. Search interest can identify common questions about battery life and total cost. These sentences are synthetic fixture prose for deterministic offline calculations, not claims from a competitor page.",
+                        "url": null,
+                        "urls": null
+                      }
+                    ],
+                    "secondary_content": null,
+                    "table_content": null
+                  },
+                  {
+                    "h_title": "What is DataForSEO Trends API and how does it work?",
+                    "main_title": "A Versatile Alternative to Google Trends: Exploring the Power of DataForSEO Trends API",
+                    "author": "Anatolii",
+                    "language": "en",
+                    "level": 3,
+                    "primary_content": [
+                      {
+                        "text": "Synthetic fixture prose: compare search interest and keyword trends. The documented example includes https://api.dataforseo.com/v3/keywords_data/dataforseo_trends/explore/live as article text.",
+                        "url": null,
+                        "urls": null
+                      }
+                    ],
+                    "secondary_content": null,
+                    "table_content": null
+                  }
+                ],
+                "secondary_topic": []
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "_fixture": {
+    "source_url": "https://docs.dataforseo.com/v3/on_page/content_parsing/live/",
+    "retrieved": "2026-11-10",
+    "adaptation": "Reduced documented JSON example: envelope, nesting, costs, and selected values retained. Long prose and optional fields removed or replaced with explicitly synthetic test text. Historical example costs are not current prices."
+  }
+}
