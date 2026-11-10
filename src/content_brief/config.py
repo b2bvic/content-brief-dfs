@@ -27,8 +27,6 @@ class Options:
     paa_depth: int = 0
     related_limit: int = 100
     llm_fanout: bool = False
-    llm_model: str = "gpt-4.1-mini"
-    llm_estimate: Decimal = Decimal("0.05")  # provider allowance, not a price guarantee
     min_page_fraction: float = 0.30
     target_words: int | None = None
     excluded_domains: tuple[str, ...] = DEFAULT_EXCLUDED
@@ -37,8 +35,8 @@ class Options:
     def __post_init__(self):
         if not self.keyword.strip() or len(self.keyword) > 700:
             raise BriefError("Keyword must contain 1 to 700 characters.")
-        if self.llm_fanout and len(self.keyword) > 500:
-            raise BriefError("LLM fan-out accepts keywords up to 500 characters.")
+        if self.llm_fanout and len(self.keyword) > 1800:
+            raise BriefError("ChatGPT fan-out accepts keywords up to 1,800 characters.")
         if not 1 <= self.top_n <= 100:
             raise BriefError("--top-n must be between 1 and 100.")
         if not 0 <= self.paa_depth <= 4:
@@ -57,6 +55,6 @@ class Options:
             )
         if self.location_code <= 0:
             raise BriefError("Location code must be positive.")
-        for value in (self.llm_estimate, self.max_cost):
+        for value in (self.max_cost,):
             if value is not None and (not value.is_finite() or value < 0):
                 raise BriefError("Cost values must be finite and nonnegative.")

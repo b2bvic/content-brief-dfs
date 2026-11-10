@@ -19,7 +19,7 @@ from .api import (
     DOCS,
     KEYWORDS,
     LLM,
-    LLM_BASE,
+    LLM_PRICE,
     PAGE_PRICE,
     PAGES,
     SERP,
@@ -31,7 +31,7 @@ from .api import (
     estimate_keywords,
     estimate_serp,
     keywords_payload,
-    llm_payload,
+    llm_payloads,
     serp_payload,
     validate_response,
     results,
@@ -115,12 +115,13 @@ def call_plan(options: Options, cache: Cache) -> dict:
         "Base task fee plus requested result limit; actual returned item count may be lower.",
     )
     if options.llm_fanout:
+        payloads = llm_payloads(options)
         row(
             LLM,
-            1,
-            LLM_BASE + options.llm_estimate,
-            int(cached_api(cache, LLM, llm_payload(options)) is not None),
-            "Provider estimate is an allowance, not a guaranteed price or token cap.",
+            len(payloads),
+            LLM_PRICE,
+            sum(cached_api(cache, LLM, p) is not None for p in payloads.values()),
+            "ChatGPT app (logged out), one prompt per intent angle: " + ", ".join(payloads) + ".",
         )
     total = sum((Decimal(r["estimated_new_cost_usd"]) for r in rows), ZERO)
     return {
@@ -364,19 +365,19 @@ def build_brief(
         )
     )
     if options.llm_fanout:
-        fanout = llm_queries(
-            client.call(LLM, llm_payload(options), LLM_BASE + options.llm_estimate)
-        )
+        fanout = []
+        for angle, payload in llm_payloads(options).items():
+            try:
+                fanout.extend(llm_queries(client.call(LLM, payload, LLM_PRICE), angle))
+            except APIError as exc:
+                warnings.append({"stage": "llm_fanout", "angle": angle, "reason": str(exc)})
+        keyword = " ".join(options.keyword.casefold().split())
+        fanout = [q for q in fanout if " ".join(q["query"].casefold().split()) != keyword]
         queries.extend(fanout)
         if not fanout:
             warnings.append(
-                {
-                    "stage": "llm_fanout",
-                    "reason": "No fan_out_queries returned despite forced web search.",
-                }
+                {"stage": "llm_fanout", "reason": "ChatGPT ran no searches beyond the keyword."}
             )
-        elif len(merge_queries(fanout)) == 1 and " ".join(fanout[0]["query"].casefold().split()).rstrip("?.!") == " ".join(options.keyword.casefold().split()).rstrip("?.!"):
-            warnings.append({"stage": "llm_fanout", "reason": "The only LLM fan-out query equals the keyword; no expanded queries were returned."})
     computed = analyze(
         pages,
         merge_queries(queries),
@@ -386,7 +387,6 @@ def build_brief(
         options.keyword,
     )
     settings = asdict(options)
-    settings["llm_estimate"] = str(options.llm_estimate)
     settings["max_cost"] = (
         str(options.max_cost) if options.max_cost is not None else None
     )

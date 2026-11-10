@@ -49,13 +49,10 @@ def parser() -> argparse.ArgumentParser:
         "--paa-depth", type=int, default=0, help="Optional PAA click depth, 1-4"
     )
     brief.add_argument("--related-limit", type=int, default=100)
-    brief.add_argument("--llm-fanout", action="store_true")
-    brief.add_argument("--llm-model", default="gpt-4.1-mini")
     brief.add_argument(
-        "--llm-cost-estimate",
-        type=dollars,
-        default=Decimal("0.05"),
-        help="Estimated provider charge, excluding DataForSEO's $0.0006 fee",
+        "--llm-fanout",
+        action="store_true",
+        help="Ask the ChatGPT app from five intent angles and record its sub-searches ($0.02)",
     )
     brief.add_argument("--min-page-fraction", type=float, default=0.30)
     brief.add_argument("--target-words", type=int)
@@ -117,8 +114,6 @@ def main(argv: list[str] | None = None) -> int:
             paa_depth=args.paa_depth,
             related_limit=args.related_limit,
             llm_fanout=args.llm_fanout,
-            llm_model=args.llm_model,
-            llm_estimate=args.llm_cost_estimate,
             min_page_fraction=args.min_page_fraction,
             target_words=args.target_words,
             excluded_domains=domains,

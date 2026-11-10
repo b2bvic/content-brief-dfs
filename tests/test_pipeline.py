@@ -59,11 +59,15 @@ def test_documented_fixture_end_to_end_writes_four_outputs(
     assert loaded["schema_version"] == 1
     assert loaded["terms"] and loaded["entities"] and loaded["topics"]
     assert loaded["pages"][0]["word_count"] > 100
-    assert len(calls) == 4
-    payload = json.loads(calls[-1].content)[0]
-    assert payload["web_search"] is True and payload["force_web_search"] is True
-    assert loaded["cost"]["settled_usd"] == "0.043056"
-    assert any(q["sources"] == ["llm_fanout"] for q in loaded["queries"])
+    # SERP, one page, related keywords, and five ChatGPT intent angles.
+    assert len(calls) == 8
+    prompts = [json.loads(c.content)[0] for c in calls[3:]]
+    assert all(p["force_web_search"] is True for p in prompts)
+    assert prompts[0]["keyword"] == "test keyword"
+    assert len({p["keyword"] for p in prompts}) == 5
+    # 0.013425 for SERP, page, and keywords, plus 5 x 0.004.
+    assert loaded["cost"]["settled_usd"] == "0.033425"
+    assert any(s.startswith("chatgpt:") for q in loaded["queries"] for s in q["sources"])
     with (tmp_path / "output/terms.csv").open() as handle:
         rows = list(csv.DictReader(handle))
     assert len(rows) == len(loaded["terms"])
@@ -240,7 +244,6 @@ def test_unknown_cost_never_triggers_fallback_or_more_calls(
         {"min_page_fraction": float("nan")},
         {"target_words": -1},
         {"max_cost": Decimal("NaN")},
-        {"llm_estimate": Decimal(-1)},
         {"language_code": "fr"},
         {"location_code": 0},
     ],
@@ -252,7 +255,7 @@ def test_invalid_options_rejected(kwargs):
 
 def test_oversize_llm_prompt_rejected():
     with pytest.raises(BriefError):
-        Options("x" * 501, llm_fanout=True)
+        Options("x" * 1801, llm_fanout=True)
 
 
 def test_google_goto_urls_resolve_before_exclusion(tmp_path, monkeypatch):

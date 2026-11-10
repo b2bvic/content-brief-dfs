@@ -22,11 +22,21 @@ from .config import BriefError, Options
 SERP = "/v3/serp/google/organic/live/advanced"
 PAGES = "/v3/on_page/content_parsing/live"
 KEYWORDS = "/v3/dataforseo_labs/google/related_keywords/live"
-LLM = "/v3/ai_optimization/chat_gpt/llm_responses/live"
+LLM = "/v3/ai_optimization/chat_gpt/llm_scraper/live/advanced"
 ENDPOINTS = (SERP, PAGES, KEYWORDS, LLM)
 DOCS = {path: f"https://docs.dataforseo.com{path}/" for path in ENDPOINTS}
 PAGE_PRICE = Decimal("0.00015")
-LLM_BASE = Decimal("0.0006")
+# ChatGPT consumer app, live queue. Settled at $0.004 per task in live runs (2026.11.10).
+LLM_PRICE = Decimal("0.004")
+# One prompt per search intent. A bare keyword makes ChatGPT run one search;
+# angled prompts make it fan out into the sub-queries it actually runs.
+FANOUT_ANGLES = {
+    "bare": "{kw}",
+    "buyer": "I'm looking into {kw}. What does it include, what does it cost, how do I choose, and what should I check first?",
+    "compare": "Compare the main options for {kw}. Which option is right for which situation?",
+    "howto": "What exactly happens in {kw}, step by step, and how do I know it was done well?",
+    "cost": "How much does {kw} cost, and what drives the price?",
+}
 ZERO = Decimal(0)
 OPERATOR = re.compile(
     r"(?i)\b(?:allinanchor|allintext|allintitle|allinurl|cache|define|definition|"
@@ -71,13 +81,15 @@ def keywords_payload(options: Options) -> dict:
     }
 
 
-def llm_payload(options: Options) -> dict:
+def llm_payloads(options: Options) -> dict[str, dict]:
     return {
-        "user_prompt": options.keyword,
-        "model_name": options.llm_model,
-        "web_search": True,
-        "force_web_search": True,
-        "max_output_tokens": 1024,
+        angle: {
+            "keyword": template.format(kw=options.keyword),
+            "location_code": options.location_code,
+            "language_code": options.language_code,
+            "force_web_search": True,
+        }
+        for angle, template in FANOUT_ANGLES.items()
     }
 
 

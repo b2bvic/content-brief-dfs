@@ -1,81 +1,57 @@
 {
-  "version": "0.1.20260717",
+  "_fixture": {
+    "source_url": "https://docs.dataforseo.com/v3/ai_optimization/chat_gpt/llm_scraper/live/advanced/",
+    "note": "Trimmed live response, 2026.11.10; answer text and items removed."
+  },
+  "version": "0.1.20261103",
   "status_code": 20000,
   "status_message": "Ok.",
-  "time": "4.8468 sec.",
-  "cost": 0.029631,
+  "time": "39.4593 sec.",
+  "cost": 0.004,
   "tasks_count": 1,
   "tasks_error": 0,
   "tasks": [
     {
-      "id": "07221754-1535-0612-0000-d708c6651bc3",
+      "id": "11101506-1048-0629-0000-865fa69d4053",
       "status_code": 20000,
       "status_message": "Ok.",
-      "time": "4.8305 sec.",
-      "cost": 0.029631,
+      "time": "39.3404 sec.",
+      "cost": 0.004,
       "result_count": 1,
       "path": [
         "v3",
         "ai_optimization",
         "chat_gpt",
-        "llm_responses",
-        "live"
+        "llm_scraper",
+        "live",
+        "advanced"
       ],
       "data": {
         "api": "ai_optimization",
-        "function": "llm_responses",
+        "function": "live",
         "se": "chat_gpt",
-        "system_message": "communicate as if we are in a business meeting",
-        "message_chain": [
-          {
-            "role": "user",
-            "message": "Hello, what's up?"
-          },
-          {
-            "role": "ai",
-            "message": "Hello! I’m doing well, thank you. How can I assist you today? Are there any specific topics or projects you’d like to discuss in our meeting?"
-          }
-        ],
-        "temperature": 0.3,
-        "top_p": 0.5,
-        "web_search_country_iso_code": "FR",
-        "web_search_city": "Paris",
-        "model_name": "gpt-4.1-mini",
-        "web_search": true,
-        "user_prompt": "provide information on how relevant the amusement park business is in France now"
+        "keyword": "Compare the best options for technical seo services: agencies, freelancers, and tools. Which is right for which kind of business?",
+        "location_code": 2840,
+        "language_code": "en",
+        "force_web_search": true,
+        "device": "desktop",
+        "os": "windows"
       },
       "result": [
         {
-          "model_name": "gpt-4.1-mini-2025-04-14",
-          "input_tokens": 8174,
-          "output_tokens": 476,
-          "reasoning_tokens": 0,
-          "web_search": true,
-          "money_spent": 0.0290312,
-          "datetime": "2026-07-22 17:54:30 +00:00",
-          "items": [
-            {
-              "type": "message",
-              "sections": [
-                {
-                  "type": "text",
-                  "text": "Synthetic message text; tests read the documented result-level fan_out_queries array.",
-                  "annotations": []
-                }
-              ]
-            }
-          ],
+          "keyword": "Compare the best options for technical seo services: agencies, freelancers, and tools. Which is right for which kind of business?",
+          "location_code": 2840,
+          "language_code": "en",
+          "model": "gpt-6",
           "fan_out_queries": [
-            "current relevance of amusement park business in France 2024"
+            "best technical SEO agencies freelancers tools comparison 2026 enterprise ecommerce small business",
+            "technical SEO tools pricing features Screaming Frog Sitebulb Ahrefs Semrush Google Search Console 2026",
+            "technical SEO agency vs consultant freelancer when to hire business size costs"
           ],
-          "search_results": []
+          "markdown": null,
+          "items": null
         }
       ]
     }
-  ],
-  "_fixture": {
-    "source_url": "https://docs.dataforseo.com/v3/ai_optimization/chat_gpt/llm_responses/live/",
-    "retrieved": "2026-11-10",
-    "adaptation": "Reduced documented JSON example: envelope, nesting, costs, and selected values retained. Long prose and optional fields removed or replaced with explicitly synthetic test text. Historical example costs are not current prices."
-  }
+  ]
 }

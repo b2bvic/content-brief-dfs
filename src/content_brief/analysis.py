@@ -130,7 +130,8 @@ class Analyzer:
         return {
             token
             for token in self.tokens(text)
-            if token not in FILTERED and len(token) > 1
+            # Years and counts ("2026") say nothing about topic coverage.
+            if token not in FILTERED and len(token) > 1 and not token.isdigit()
         }
 
     def terms(self, text: str) -> Counter:

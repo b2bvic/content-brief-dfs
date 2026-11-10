@@ -49,13 +49,11 @@ def test_documented_related_keyword_volume(fixture_response):
     }
 
 
-def test_documented_fanout_is_result_level(fixture_response):
-    rows = llm_queries(fixture_response("llm"))
-    assert rows == [
-        query_row(
-            "current relevance of amusement park business in France 2024", "llm_fanout"
-        )
-    ]
+def test_chatgpt_app_fanout_is_result_level_and_tagged_by_angle(fixture_response):
+    rows = llm_queries(fixture_response("llm"), "compare")
+    assert len(rows) == 3
+    assert all(row["sources"] == ["chatgpt:compare"] for row in rows)
+    assert rows[2]["query"].startswith("technical SEO agency vs consultant")
 
 
 def test_deduplicate_preserves_sources_and_volume():

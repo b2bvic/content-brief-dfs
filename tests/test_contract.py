@@ -13,7 +13,7 @@ from content_brief.api import DOCS
         ("serp", "/v3/serp/google/organic/live/advanced"),
         ("pages", "/v3/on_page/content_parsing/live"),
         ("keywords", "/v3/dataforseo_labs/google/related_keywords/live"),
-        ("llm", "/v3/ai_optimization/chat_gpt/llm_responses/live"),
+        ("llm", "/v3/ai_optimization/chat_gpt/llm_scraper/live/advanced"),
     ],
 )
 def test_every_endpoint_fixture_cites_its_doc(fixture_response, name, endpoint):

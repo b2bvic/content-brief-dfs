@@ -45,11 +45,13 @@ Prices below were checked on 2026-11-10. Each POST contains one task. Current pr
 | [`serp/google/organic/live/advanced`](https://docs.dataforseo.com/v3/serp/google/organic/live/advanced/) | $0.002 per SERP of up to 10 results; +$0.002 for async AI Overview when present | $0.004 for depth 10 with async AI Overview |
 | [`on_page/content_parsing/live`](https://docs.dataforseo.com/v3/on_page/content_parsing/live/) | $0.00015 per page | Up to 10 calls, $0.00150 total |
 | [`dataforseo_labs/google/related_keywords/live`](https://docs.dataforseo.com/v3/dataforseo_labs/google/related_keywords/live/) | $0.012 per task + $0.00012 per returned item | $0.024 at the default limit of 100 |
-| [`ai_optimization/chat_gpt/llm_responses/live`](https://docs.dataforseo.com/v3/ai_optimization/chat_gpt/llm_responses/live/) | $0.0006 per task + the model provider's charge | Optional; $0.0506 including a configurable $0.05 provider allowance |
+| [`ai_optimization/chat_gpt/llm_scraper/live/advanced`](https://docs.dataforseo.com/v3/ai_optimization/chat_gpt/llm_scraper/live/advanced/) | $0.004 per task (settled in live runs, 2026.11.10) | Optional; five tasks, $0.020 |
 
 Pricing sources: [Google Organic SERP](https://dataforseo.com/pricing/google-serp/google-organic-serp-api), [OnPage](https://dataforseo.com/pricing/on-page/onpage-api), [Google Labs](https://dataforseo.com/pricing/dataforseo-labs/dataforseo-google-api), [LLM Responses](https://dataforseo.com/pricing/ai-optimization/llm-responses).
 
-The default cold-cache plan estimates **$0.02950**. Adding `--llm-fanout` estimates **$0.08010**. These are estimates, not fixed quotes. The LLM call forces web search using `web_search=true` and `force_web_search=true`. Its default model is `gpt-4.1-mini`. A custom model must support both fields. The provider may exceed the requested token limit during web search.
+The default cold-cache plan estimates **$0.03150**. Adding `--llm-fanout` estimates **$0.05150**. These are estimates, not fixed quotes; settled task costs are recorded in `brief.json`.
+
+`--llm-fanout` asks the logged-out ChatGPT app the keyword from five intent angles (bare, buyer, compare, how-to, cost) with web search forced, and records the searches ChatGPT ran (`fan_out_queries`). Each query is tagged `chatgpt:<angle>`. A bare keyword usually makes ChatGPT run one search; the angled prompts are what make it fan out. In live tests on three keywords, the LLM Responses API route returned only the prompt itself as its search, so this tool does not use it.
 
 SERP depth rounds up to groups of ten. Search operators increase the base rate. PAA expansion costs $0.00015 per click. The plan reserves `4*(2**depth-1)` clicks, since the server determines the real number. It estimates fivefold base-price multiplication per detected search operator. The docs describe these variable charges; actual settlement always uses the task `cost` field.
 
@@ -71,7 +73,7 @@ Collect data and write the four artifacts:
 ```sh
 uv run content-brief brief 'solar battery storage' --max-cost 0.05 --output out
 uv run content-brief brief 'solar battery storage' --llm-fanout \
-  --llm-cost-estimate 0.08 --max-cost 0.15 --output out
+  --max-cost 0.10 --output out
 ```
 
 Other controls:

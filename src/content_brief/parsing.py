@@ -204,10 +204,10 @@ def related_queries(raw: dict) -> list[dict]:
     return rows
 
 
-def llm_queries(raw: dict) -> list[dict]:
-    # fan_out_queries is a result-level array, not text under message.sections.
+def llm_queries(raw: dict, angle: str = "bare") -> list[dict]:
+    # fan_out_queries is a result-level array of the searches ChatGPT ran.
     return [
-        query_row(query, "llm_fanout")
+        query_row(query, f"chatgpt:{angle}")
         for result in results(raw)
         for query in result.get("fan_out_queries") or []
         if isinstance(query, str) and query.strip()
