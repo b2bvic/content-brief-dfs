@@ -19,7 +19,7 @@ The external build contract calls for a DataForSEO-backed Python package that co
 | Page main text and headings, local readability fallback | `src/content_brief/parsing.py:200`; `src/content_brief/pipeline.py:151`; `tests/test_pipeline.py` fallback integration test | PASS |
 | Source-tagged query dedupe, Labs volumes, forced LLM fan-out | `src/content_brief/parsing.py`; `src/content_brief/api.py`; documented fixture integration at `tests/test_pipeline.py:44` | PASS |
 | Term counts, densities, coverage threshold, scaled IQR, length band | `src/content_brief/analysis.py:166`; arithmetic tests in `tests/test_analysis.py` | PASS |
-| NLP NER/noun chunks and absent-package/model fallback | `src/content_brief/analysis.py:89`; `tests/test_nlp_optional.py:15`; absence tests in `tests/test_analysis.py` | PASS |
+| NLP NER (no noun chunks) and absent-package/model fallback | `src/content_brief/analysis.py:89`; `tests/test_nlp_optional.py:15`; absence tests in `tests/test_analysis.py` | PASS |
 | Entity normalization, document frequency, total mentions | `src/content_brief/analysis.py:199`; normalization tests in `tests/test_analysis.py` | PASS |
 | Heading clusters and query-to-page/cluster mapping; gaps | `src/content_brief/analysis.py:239`; heading and gap test in `tests/test_analysis.py` | PASS |
 | All four outputs and request-hash cache replay | `src/content_brief/output.py:153`; `.cache/pytest-tmp/test_documented_fixture_end_to0/output/` | PASS |

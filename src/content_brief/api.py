@@ -53,7 +53,7 @@ def serp_payload(options: Options) -> dict:
         "keyword": options.keyword.replace("%", "%25").replace("+", "%2B"),
         "location_code": options.location_code,
         "language_code": options.language_code,
-        "depth": options.top_n,
+        "depth": options.top_n + 10,
         "load_async_ai_overview": True,
     }
     if options.paa_depth:
@@ -82,7 +82,7 @@ def llm_payload(options: Options) -> dict:
 
 
 def estimate_serp(options: Options) -> Decimal:
-    pages = (options.top_n + 9) // 10
+    pages = (options.top_n + 10 + 9) // 10
     # Pricing page says x5 per operator. Use that conservative interpretation.
     multiplier = 5 ** len(OPERATOR.findall(options.keyword))
     # PAA depth is expansion depth, not the number of clicks. Reserve a

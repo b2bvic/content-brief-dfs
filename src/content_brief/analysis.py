@@ -20,6 +20,23 @@ they this those through to too under until up very was we were what when where w
 whom why will with would you your yours yourself yourselves also may might must shall whether
 via per using use used get new one two many much like""".split()
 )
+# Generic verbs, adverbs, and filler that carry no topic. They are not stop words in
+# grammar, but a writer gains nothing from a range for them.
+GENERIC = set(
+    """make need see even take keep well first good away enough long time way thing go know
+want look come back sure right lot really step start end help try find give put little great
+best easy simple simply let say said ever never always often usually sometimes still yet
+already almost quite rather pretty bit around next last another every something anything
+everything nothing someone anyone everyone able actually probably maybe instead though although
+however since because also likely work thing kind sort part place point case fact example
+year day week minute hour today read click share comment reply post page site article
+non recommend follow ready easily""".split()
+)
+# spaCy entity labels that are quantities, not things a writer names.
+NUMERIC_LABELS = {"CARDINAL", "ORDINAL", "QUANTITY", "DATE", "TIME", "PERCENT", "MONEY"}
+LEADING = {"a", "an", "the", "this", "that", "these", "those", "your", "my", "our", "their",
+           "his", "her", "its"}
+TERM_TABLE_ROWS = 60
 BOILERPLATE = set(
     """copyright cookies cookie privacy newsletter subscribe login signup navigation menu javascript
 reserved rights advertisement""".split()
@@ -69,7 +86,9 @@ def lemma(word: str) -> str:
     return word
 
 
-FILTERED = STOP | BOILERPLATE | {lemma(token) for token in STOP | BOILERPLATE}
+FILTERED = (STOP | BOILERPLATE | GENERIC) | {
+    lemma(token) for token in STOP | BOILERPLATE | GENERIC
+}
 # spaCy's lemma for "reserved" differs from the lightweight suffix heuristic.
 FILTERED |= {"reserve", "advertise"}
 
@@ -130,10 +149,11 @@ class Analyzer:
     def entity_candidates(self, text: str) -> list[tuple[str, str]]:
         if self.nlp:
             doc = self.nlp(text)
-            values = [(ent.text, ent.label_) for ent in doc.ents]
-            if doc.has_annotation("DEP"):
-                values.extend((chunk.text, "NOUN_CHUNK") for chunk in doc.noun_chunks)
-            return values
+            return [
+                (ent.text, ent.label_)
+                for ent in doc.ents
+                if ent.label_ not in NUMERIC_LABELS
+            ]
         # Capitalized phrases are candidates, not validated named entities.
         pattern = r"\b[A-Z][A-Za-z0-9'-]*(?:[ \t]+[A-Z][A-Za-z0-9'-]*){0,4}\b"
         values = []
@@ -141,8 +161,13 @@ class Analyzer:
             parts = match.group().split()
             while parts and parts[0].casefold() in STOP:
                 parts.pop(0)
-            if parts and not all(p.casefold() in STOP | BOILERPLATE for p in parts):
-                values.append((" ".join(parts), "HEURISTIC"))
+            if not parts or all(p.casefold() in FILTERED for p in parts):
+                continue
+            # A single capitalized word at a sentence start is ordinary prose.
+            before = text[: match.start()].rstrip()
+            if len(parts) == 1 and (not before or before[-1] in ".!?:\n"):
+                continue
+            values.append((" ".join(parts), "HEURISTIC"))
         return values
 
 
@@ -193,28 +218,67 @@ def term_table(
                 "scaled_p75": round(high, 4),
             }
         )
+    # Drop an n-gram when a longer n-gram that contains it has the same reach and
+    # count: the shorter one never appears outside the longer phrase.
+    longer: dict[tuple[int, int], list[str]] = {}
+    for row in rows:
+        if " " in row["term"]:
+            longer.setdefault((row["pages_used"], row["total_uses"]), []).append(row["term"])
+    rows = [
+        row
+        for row in rows
+        if not any(
+            other != row["term"] and f" {row['term']} " in f" {other} "
+            for other in longer.get((row["pages_used"], row["total_uses"]), [])
+        )
+    ]
     return sorted(rows, key=lambda r: (-r["pages_used"], -r["total_uses"], r["term"]))
+
+
+def shown_terms(brief: dict) -> list[dict]:
+    """The term rows a writer sees in brief.md; score uses the same rows."""
+    return brief["terms"][:TERM_TABLE_ROWS]
+
+
+def shown_topics(brief: dict) -> list[dict]:
+    """Clusters on at least two pages, or all clusters for a sample under three."""
+    if len(brief.get("pages", [])) < 3:
+        return brief["topics"]
+    return [t for t in brief["topics"] if t["pages_used"] >= 2]
 
 
 def entity_table(pages: list[Page], analyzer: Analyzer) -> list[dict]:
     candidates = {}
     for page in pages:
         for text, kind in analyzer.entity_candidates(page.text):
+            words = text.split()
+            while words and words[0].casefold().removesuffix("'s") in LEADING:
+                words.pop(0)
+            text = " ".join(words)
             normalized = " ".join(analyzer.tokens(text))
-            if not normalized or all(
-                token in STOP | BOILERPLATE for token in normalized.split()
+            if len(normalized) < 2 or all(
+                token in FILTERED or token.isdigit() for token in normalized.split()
             ):
                 continue
-            if (
-                normalized not in candidates
-                or candidates[normalized][1] == "NOUN_CHUNK"
-            ):
-                candidates[normalized] = (text, kind)
+            candidates.setdefault(normalized, (text, kind))
+    # Names are rarer than terms. Two pages make a pattern; one page is that
+    # author's choice. The term page fraction would drop most real names.
+    floor = 2 if len(pages) >= 3 else 1
     tokens = [analyzer.tokens(page.text) for page in pages]
+    corpus = "\n".join(page.text for page in pages)
     rows = []
     for normalized, (label, kind) in sorted(candidates.items()):
+        # A name keeps its capital letter. A word that the pages mostly write in
+        # lower case ("Cook", "Bake" at a step start) is ordinary vocabulary.
+        if "'" in label or "’" in label:
+            continue
+        pattern = r"\b" + re.escape(label) + r"\b"
+        capitalized = len(re.findall(pattern, corpus))
+        lower = len(re.findall(r"\b" + re.escape(label.lower()) + r"\b", corpus))
+        if label != label.lower() and lower > capitalized:
+            continue
         mentions = [count_phrase(t, normalized.split()) for t in tokens]
-        if not any(mentions):
+        if sum(m > 0 for m in mentions) + 1e-12 < floor:
             continue
         rows.append(
             {
@@ -236,11 +300,29 @@ def overlap(left: set[str], right: set[str]) -> float:
     return len(left & right) / len(left | right) if left and right else 0.0
 
 
-def topic_clusters(pages: list[Page], analyzer: Analyzer) -> list[dict]:
+# Site furniture that pages mark up as headings.
+BOILERPLATE_HEADING = re.compile(
+    r"(?i)\b(?:related (?:posts|articles|reading)|you (?:might|may) (?:also )?(?:like|enjoy)|"
+    r"other posts|leave a (?:reply|comment)|comments?|share this|subscribe|newsletter|"
+    r"about the author|table of contents|recent posts|popular posts|follow us|sign up)\b"
+)
+
+
+def without_keyword(tokens: set[str], keyword: set[str]) -> set[str]:
+    """Drop the keyword's own words. They appear everywhere and match everything."""
+    rest = tokens - keyword
+    return rest or tokens
+
+
+def topic_clusters(
+    pages: list[Page], analyzer: Analyzer, keyword: set[str] = frozenset()
+) -> list[dict]:
     groups: list[list[dict]] = []
     for page in pages:
         for heading in page.headings:
-            tokens = analyzer.content_tokens(heading["text"])
+            if BOILERPLATE_HEADING.search(heading["text"]):
+                continue
+            tokens = without_keyword(analyzer.content_tokens(heading["text"]), keyword)
             if not tokens:
                 continue
             row = {**heading, "url": page.url, "tokens": tokens}
@@ -287,12 +369,16 @@ def text_windows(text: str, analyzer: Analyzer) -> list[set[str]]:
 
 
 def map_queries(
-    queries: list[dict], clusters: list[dict], pages: list[Page], analyzer: Analyzer
+    queries: list[dict],
+    clusters: list[dict],
+    pages: list[Page],
+    analyzer: Analyzer,
+    keyword: set[str] = frozenset(),
 ) -> list[dict]:
     page_windows = {p.url: text_windows(p.text, analyzer) for p in pages}
     output = []
     for row in queries:
-        tokens = analyzer.content_tokens(row["query"])
+        tokens = without_keyword(analyzer.content_tokens(row["query"]), keyword)
         matched = [
             c
             for c in clusters
@@ -324,19 +410,21 @@ def analyze(
     analyzer: Analyzer,
     target_words: int | None = None,
     minimum: float = 0.30,
+    keyword: str = "",
 ) -> dict:
     if not pages or any(word_count(p.text) == 0 for p in pages):
         raise BriefError("No usable competitor main text remains.")
     lengths = [word_count(page.text) for page in pages]
     target = target_words or max(1, round(percentile(lengths, 0.5)))
-    clusters = topic_clusters(pages, analyzer)
+    keyword_tokens = analyzer.content_tokens(keyword)
+    clusters = topic_clusters(pages, analyzer, keyword_tokens)
     return {
         "analysis": {
             "backend": analyzer.backend,
             "language": "en",
             "min_page_fraction": minimum,
             "quantiles": "linear (n-1)*p; only pages using a term enter its range",
-            "coverage_method": "lexical overlap heuristic; a match does not verify an answer",
+            "coverage_method": "lexical overlap heuristic without the keyword's own words; a match does not verify an answer",
         },
         "target_word_count": {
             "target": target,
@@ -350,7 +438,7 @@ def analyze(
         "terms": term_table(pages, analyzer, target, minimum),
         "entities": entity_table(pages, analyzer),
         "topics": clusters,
-        "queries": map_queries(queries, clusters, pages, analyzer),
+        "queries": map_queries(queries, clusters, pages, analyzer, keyword_tokens),
     }
 
 
@@ -367,7 +455,7 @@ def score_draft(draft: str, brief: dict, analyzer: Analyzer | None = None) -> di
     counts = analyzer.terms(draft)
     tokens = analyzer.tokens(draft)
     terms, entities, topics, misses = [], [], [], []
-    for term in brief["terms"]:
+    for term in shown_terms(brief):
         actual = counts[term["term"]]
         low, high = term["recommended_min"], term["recommended_max"]
         credit = (
@@ -385,7 +473,7 @@ def score_draft(draft: str, brief: dict, analyzer: Analyzer | None = None) -> di
         )
         if not low <= actual <= high:
             misses.append(
-                f"Term '{term['term']}': {actual} uses; expected {low}-{high}."
+                f"Term '{term['term']}': {actual} uses; competitor range {low}-{high}."
             )
     for entity in brief["entities"]:
         actual = count_phrase(tokens, entity["normalized"].split())
@@ -395,7 +483,7 @@ def score_draft(draft: str, brief: dict, analyzer: Analyzer | None = None) -> di
         if not actual:
             misses.append(f"Entity missing: {entity['entity']}.")
     windows = text_windows(draft, analyzer)
-    for topic in brief["topics"]:
+    for topic in shown_topics(brief):
         covered = any(
             covers(analyzer.content_tokens(h), window)
             for h in topic["example_headings"]
@@ -412,7 +500,7 @@ def score_draft(draft: str, brief: dict, analyzer: Analyzer | None = None) -> di
     word_credit = min(1.0, length / low) if length < low else min(1.0, high / length)
     if not low <= length <= high:
         misses.append(
-            f"Word count: {length}; expected {math.floor(low)}-{math.ceil(high)}."
+            f"Word count: {length}; competitor range {math.floor(low)}-{math.ceil(high)}."
         )
     components = {
         "terms": sum(t["credit"] for t in terms) / len(terms) if terms else None,

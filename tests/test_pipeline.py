@@ -142,7 +142,7 @@ def test_dry_run_no_creds_network_or_writes(tmp_path, capsys):
         == 0
     )
     plan = json.loads(capsys.readouterr().out)
-    assert plan["estimated_cost_usd"] == "0.02950"
+    assert plan["estimated_cost_usd"] == "0.03150"
     assert {row["endpoint"] for row in plan["calls"]} == {SERP, PAGES, KEYWORDS}
     assert not cache.exists() and not output.exists()
 
@@ -171,7 +171,7 @@ def test_click_depth_operator_and_result_limit_affect_estimates(tmp_path):
         Cache(tmp_path),
     )
     assert Decimal(expanded["estimated_cost_usd"]) > Decimal(base["estimated_cost_usd"])
-    assert expanded["calls"][0]["estimated_per_call_usd"] == "0.02380"
+    assert expanded["calls"][0]["estimated_per_call_usd"] == "0.03380"
     assert expanded["calls"][-1]["endpoint"] == LLM
 
 
@@ -253,3 +253,72 @@ def test_invalid_options_rejected(kwargs):
 def test_oversize_llm_prompt_rejected():
     with pytest.raises(BriefError):
         Options("x" * 501, llm_fanout=True)
+
+
+def test_google_goto_urls_resolve_before_exclusion(tmp_path, monkeypatch):
+    from content_brief import pipeline
+    from content_brief.api import Cache
+    from content_brief.parsing import organic_pages
+
+    monkeypatch.setattr(pipeline, "check_public_destination", lambda url: None)
+    hops = {
+        "https://google.com/goto?url=A": "https://www.google.com/goto?url=A",
+        "https://www.google.com/goto?url=A": "https://www.seriouseats.com/restore-cast-iron",
+        "https://google.com/goto?url=B": "https://www.reddit.com/r/castiron/",
+    }
+
+    def handler(request):
+        return httpx.Response(301, headers={"location": hops[str(request.url)]})
+
+    http = httpx.Client(transport=httpx.MockTransport(handler))
+    raw = {
+        "status_code": 20000,
+        "tasks": [{"status_code": 20000, "cost": 0.004, "result": [{"items": [
+            {"type": "organic", "rank_group": 1, "domain": "google.com",
+             "url": "https://google.com/goto?url=B", "title": "r/castiron"},
+            {"type": "organic", "rank_group": 2, "domain": "google.com",
+             "url": "https://google.com/goto?url=A", "title": "Restore"},
+            {"type": "organic", "rank_group": 3, "domain": "google.com",
+             "url": "https://google.com/goto?url=C", "title": "Broken",
+             "breadcrumb": "https://www.youtube.com › watch"},
+        ]}]}],
+    }
+
+    def failing(request):
+        if "url=C" in str(request.url):
+            return httpx.Response(200, text="<html></html>")
+        return handler(request)
+
+    http = httpx.Client(transport=httpx.MockTransport(failing))
+    prepared, warnings, pending = pipeline.prepare_serp_urls(
+        raw, Cache(tmp_path), ("reddit.com", "youtube.com"), http
+    )
+    assert not pending
+    candidates, skipped = organic_pages(prepared, 10, ("reddit.com", "youtube.com"))
+    assert [c["url"] for c in candidates] == ["https://www.seriouseats.com/restore-cast-iron"]
+    reasons = sorted(s["reason"] for s in skipped)
+    assert reasons == ["excluded_domain", "excluded_domain"]
+    assert warnings and warnings[0]["fallback_domain"] == "youtube.com"
+    # The resolution is cached; a second pass needs no network.
+    again, _, pending = pipeline.prepare_serp_urls(
+        raw, Cache(tmp_path), ("reddit.com",), allow_network=False
+    )
+    assert any(i["url"].startswith("https://www.seriouseats.com") for i in again["tasks"][0]["result"][0]["items"])
+
+
+def test_google_meta_refresh_interstitial_is_followed(tmp_path, monkeypatch):
+    from content_brief import pipeline
+    from content_brief.api import Cache
+
+    monkeypatch.setattr(pipeline, "check_public_destination", lambda url: None)
+
+    def handler(request):
+        url = str(request.url)
+        if url == "https://google.com/goto?url=X":
+            return httpx.Response(200, text='<html><head><meta content="5;url=/goto?url=Y&amp;s=1" http-equiv="refresh"></head></html>')
+        if url == "https://google.com/goto?url=Y&s=1":
+            return httpx.Response(302, headers={"location": "https://www.lodgecastiron.com/pages/how-to-clean"})
+        raise AssertionError(url)
+
+    http = httpx.Client(transport=httpx.MockTransport(handler))
+    assert pipeline.resolve_google_url("https://google.com/goto?url=X", Cache(tmp_path), http) == "https://www.lodgecastiron.com/pages/how-to-clean"

@@ -43,6 +43,26 @@ def canonical_url(url: str) -> str:
     )
 
 
+def google_url(url: str) -> bool:
+    host = (urlsplit(url).hostname or "").lower()
+    return bool(re.search(r"(?:^|\.)google\.(?:com|[a-z]{2}|(?:com|co)\.[a-z]{2}|cat)$", host))
+
+
+def domain_hint(item: dict, domains: tuple[str, ...]) -> str | None:
+    """Use visible SERP metadata only, never the opaque Google goto parameter."""
+    for field in ("breadcrumb", "website_name", "source"):
+        text = item.get(field) or ""
+        match = re.search(r"(?:https?://)?((?:[a-z0-9-]+\.)+[a-z]{2,})(?:[/\s›·]|$)", text, re.I)
+        if match:
+            return match[1].lower().removeprefix("www.")
+        label = re.split(r"[·|›]", text)[0].strip().casefold()
+        for domain in domains:
+            host = domain.lower().removeprefix("www.").strip(".")
+            if label == host.split(".")[0]:
+                return host
+    return None
+
+
 def excluded(url: str, domains: tuple[str, ...]) -> bool:
     host = (urlsplit(url).hostname or "").lower().removeprefix("www.")
     for domain in domains:
@@ -67,6 +87,11 @@ def organic_pages(
         key=lambda i: i.get("rank_group") or 9999,
     ):
         url = item.get("url") or ""
+        if item.get("_resolution_failed") or (public_url(url) and google_url(url)):
+            hint = domain_hint(item, domains)
+            reason = "excluded_domain" if hint and excluded(f"https://{hint}/", domains) else "unresolved_google_redirect"
+            skipped.append({"url": f"https://{hint}/" if hint else "https://google.com/goto", "reason": reason})
+            continue
         if not public_url(url):
             skipped.append({"reason": "invalid_url"})
             continue
@@ -129,21 +154,13 @@ def serp_features(raw: dict) -> tuple[list[dict], list[dict]]:
                 def walk(node):
                     if not isinstance(node, dict):
                         return
-                    title = node.get("title")
                     text = node.get("text") or node.get("markdown")
-                    if title:
-                        queries.append(query_row(title, "ai_overview"))
-                    elif text:
-                        # Without an explicit subheading, preserve the first
-                        # source sentence as a subtopic, without model rewriting.
-                        sentence = re.split(r"(?<=[.!?])\s+", text.strip())[0]
-                        queries.append(query_row(sentence, "ai_overview"))
                     if text:
                         texts.append(text)
                     references.extend(
                         r
                         for r in node.get("references") or []
-                        if public_url(r.get("url", ""))
+                        if public_url(r.get("url", "")) and not r.get("_resolution_failed")
                     )
                     for child in node.get("items") or []:
                         walk(child)
@@ -159,7 +176,7 @@ def serp_features(raw: dict) -> tuple[list[dict], list[dict]]:
                 references.extend(
                     r
                     for r in item.get("references") or []
-                    if public_url(r.get("url", ""))
+                    if public_url(r.get("url", "")) and not r.get("_resolution_failed")
                 )
                 unique_refs = {r["url"]: r for r in references}
                 overviews.append(

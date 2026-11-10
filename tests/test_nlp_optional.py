@@ -28,7 +28,7 @@ def test_real_optional_nlp_model_offline():
         **analyze(pages, [query_row("Search engines", "paa")], analyzer),
     }
     assert any(entity["type"] == "ORG" for entity in brief["entities"])
-    assert any(entity["type"] == "NOUN_CHUNK" for entity in brief["entities"])
+    assert not any(entity["type"] == "NOUN_CHUNK" for entity in brief["entities"])
     assert "engine" in analyzer.tokens("engines")
     report = score_draft(pages[0].text, brief, analyzer)
     assert report["grade"] == 100

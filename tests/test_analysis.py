@@ -101,9 +101,13 @@ def test_optional_spacy_missing_model_falls_back(monkeypatch):
     assert Analyzer().backend == "english_heuristic"
 
 
-def test_spacy_uses_ner_noun_chunks_and_lemmas(monkeypatch):
+def test_spacy_uses_ner_without_noun_chunks_or_numbers(monkeypatch):
     class Doc(list):
-        ents = [SimpleNamespace(text="Google", label_="ORG")]
+        ents = [
+            SimpleNamespace(text="Google", label_="ORG"),
+            SimpleNamespace(text="10", label_="CARDINAL"),
+            SimpleNamespace(text="2024", label_="DATE"),
+        ]
         noun_chunks = [SimpleNamespace(text="search engines")]
 
         def has_annotation(self, key):
@@ -116,25 +120,37 @@ def test_spacy_uses_ner_noun_chunks_and_lemmas(monkeypatch):
     analyzer = Analyzer()
     assert analyzer.backend == "spacy:en_core_web_sm"
     assert analyzer.tokens("engines") == ["engine"]
-    assert analyzer.entity_candidates("Google search engines") == [
-        ("Google", "ORG"),
-        ("search engines", "NOUN_CHUNK"),
-    ]
+    assert analyzer.entity_candidates("Google search engines") == [("Google", "ORG")]
 
 
 def test_entity_case_plural_normalization_and_frequency():
     pages = [
         page(
-            "Apple makes phones. apple makes more phones. Batteries improve battery life.",
+            "Buyers trust Apple. Many say apple makes phones. Batteries improve battery life.",
             1,
         ),
-        page("Apple makes batteries. Battery life matters.", 2),
+        page("Reviews of Apple batteries. Battery Life matters.", 2),
     ]
     entities = entity_table(pages, Analyzer(False))
     apple = next(e for e in entities if e["normalized"] == "apple")
-    battery = next(e for e in entities if e["normalized"] == "battery")
+    life = next(e for e in entities if e["normalized"] == "battery life")
     assert apple["pages_used"] == 2 and apple["total_mentions"] == 3
-    assert battery["pages_used"] == 2 and battery["total_mentions"] == 4
+    assert life["pages_used"] == 2 and life["total_mentions"] == 2
+    # A single capitalized word at a sentence start is not a candidate.
+    assert not any(e["normalized"] == "battery" for e in entities)
+
+
+def test_entities_need_page_threshold_and_drop_determiners():
+    pages = [
+        page("Readers ask The Lodge team. Readers visit Field Company.", 1),
+        page("Readers ask The Lodge team again.", 2),
+        page("Readers ask Lodge support.", 3),
+    ]
+    entities = entity_table(pages, Analyzer(False))
+    names = {e["normalized"] for e in entities}
+    assert "lodge" in names
+    # Field Company appears on one page of three: below the two-page floor.
+    assert "field company" not in names
 
 
 def test_heading_clusters_and_query_gaps():
@@ -181,6 +197,7 @@ def score_brief():
     return {
         "schema_version": 1,
         "analysis": {"backend": "english_heuristic"},
+        "pages": [{}],
         "terms": [{"term": "battery", "recommended_min": 1, "recommended_max": 2}],
         "entities": [{"entity": "Apple", "normalized": "apple"}],
         "topics": [
@@ -230,3 +247,55 @@ def test_empty_analysis_fails():
 def test_quantiles_single_page():
     assert percentile([12], 0.25) == 12
     assert percentile([0, 10], 0.25) == 2.5
+
+
+def test_generic_terms_filtered_and_subsumed_ngrams_dropped():
+    pages = [
+        page("Make sure you season cast iron. Cast iron needs oil.", 1),
+        page("Season cast iron well. Keep cast iron dry.", 2),
+    ]
+    terms = {t["term"] for t in term_table(pages, Analyzer(False), 100, 0.3)}
+    assert "cast iron" in terms
+    assert not {"make", "sure", "keep", "well"} & terms
+    # "cast" never appears outside "cast iron", so it adds nothing.
+    assert "cast" not in terms
+
+
+def test_score_counts_only_shown_topics():
+    brief = score_brief()
+    brief["pages"] = [{}, {}, {}]
+    brief["topics"] = [
+        {"id": "topic-1", "label": "Battery life", "example_headings": ["Battery life"], "pages_used": 2},
+        {"id": "topic-2", "label": "Underwater cases", "example_headings": ["Underwater cases"], "pages_used": 1},
+    ]
+    report = score_draft("Apple improves battery life today.", brief)
+    assert [t["id"] for t in report["topics"]] == ["topic-1"]
+
+
+def test_entities_written_mostly_lowercase_are_vocabulary():
+    pages = [
+        page("Cook the eggs. You cook them slowly and cook them well. Visit Lodge Foundry.", 1),
+        page("Cook it again. We cook often at Lodge Foundry.", 2),
+    ]
+    names = {e["normalized"] for e in entity_table(pages, Analyzer(False))}
+    assert "lodge foundry" in names
+    assert "cook" not in names
+
+
+def test_keyword_words_do_not_merge_topics_or_hide_gaps():
+    pages = [
+        page("Cast iron rusts when wet. Dry cast iron after washing.", 1,
+             [{"level": 2, "text": "Why does cast iron rust?"}, {"level": 2, "text": "Other Posts You Might Enjoy"}]),
+        page("Season cast iron with oil in the oven.", 2,
+             [{"level": 2, "text": "How to season cast iron"}]),
+    ]
+    result = analyze(
+        pages,
+        [query_row("Can you use butter on cast iron?", "paa")],
+        Analyzer(False),
+        keyword="how to clean cast iron",
+    )
+    labels = [t["label"] for t in result["topics"]]
+    assert "Other Posts You Might Enjoy" not in labels
+    assert len(result["topics"]) == 2
+    assert result["queries"][0]["gap"]

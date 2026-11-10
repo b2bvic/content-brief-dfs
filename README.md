@@ -19,7 +19,7 @@ uv tool install .
 content-brief brief 'test keyword' --dry-run
 ```
 
-The base install does not require spaCy. To enable its lemmatizer, named entities, and noun chunks:
+The base install does not require spaCy. To enable its lemmatizer and named entities (recommended; the fallback is noisier):
 
 ```sh
 uv sync --extra nlp
@@ -112,7 +112,9 @@ The report includes term counts and ranges, missing entities, missing topics, wo
 - Word count uses lexical words and numbers in main text. The default target is the rounded median competitor length, with a p25-p75 band.
 - Terms are lemmatized 1-3 grams. Stop words and boilerplate break grams. Hyphens separate tokens within compounds; other punctuation and sentence boundaries break grams. A term needs at least 30% page coverage by default.
 - Each term's count is divided by that page's word count, then scaled to target length. Linear inclusive p25 and p75 use only pages containing the term. Recommendations round outward and require at least one use.
-- spaCy supplies NER and noun chunks. The fallback finds capitalized phrases and normalizes case and common English plurals. These candidates can contain false positives. Every entity includes a type and observed mentions across all pages.
+- spaCy supplies named entities; numeric labels (dates, money, counts) are dropped. The fallback finds capitalized phrases, skips a single capitalized word at a sentence start, and normalizes case and common English plurals. Its candidates can contain false positives. An entity must appear on at least two pages (when the sample has three or more), and a word the pages mostly write in lower case is treated as vocabulary, not a name.
+- The keyword's own words are removed before heading clustering and query matching, so a query is a gap only when no page covers its distinct words.
+- Organic URLs that DataForSEO returns as `google.com/goto` links are resolved by following Google's redirects (including meta-refresh interstitials) before exclusion and parsing. Resolutions are cached.
 - H2/H3 clusters use greedy token Jaccard overlap of at least 0.4. Query mappings use at least 60% query-token overlap with a heading or an 80-word text window. Matches indicate lexical coverage, not verified answers. Unmatched queries are gaps.
 - Fan-out merges PAA, related searches, AI Overview subheadings, Labs keywords with volume, and optional result-level `fan_out_queries`. When an Overview element has no title, its first source sentence is the subtopic. No model invents queries from that text.
 - Scoring weights are terms 50%, entities 20%, topics 20%, length 10%. Empty metric groups are omitted and the remaining weights renormalize. In-range terms earn full credit. Underuse earns `actual/min`; overuse earns `max/actual`. Entities and topics are binary. Length earns full credit inside the length band and proportional credit outside it. An explicit target scales that band proportionally.

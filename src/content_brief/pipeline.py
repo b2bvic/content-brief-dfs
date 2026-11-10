@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import html
 import ipaddress
+import re
 import socket
+from copy import deepcopy
 from dataclasses import asdict, replace
 from decimal import Decimal
 from urllib.parse import urljoin, urlsplit
@@ -30,10 +33,14 @@ from .api import (
     llm_payload,
     serp_payload,
     validate_response,
+    results,
 )
 from .config import BriefError, Options
 from .parsing import (
     Page,
+    canonical_url,
+    domain_hint,
+    google_url,
     llm_queries,
     merge_queries,
     organic_pages,
@@ -59,11 +66,11 @@ def cached_api(cache: Cache, endpoint: str, payload: dict) -> dict | None:
 def call_plan(options: Options, cache: Cache) -> dict:
     """No writes, auth lookup, NLP imports, or network calls."""
     serp = cached_api(cache, SERP, serp_payload(options))
-    known_pages = (
-        organic_pages(serp, options.top_n, options.excluded_domains)[0]
-        if serp
-        else None
-    )
+    known_pages = None
+    if serp:
+        prepared, _, pending = prepare_serp_urls(serp, cache, options.excluded_domains, allow_network=False)
+        if not pending:
+            known_pages = organic_pages(prepared, options.top_n, options.excluded_domains)[0]
     rows = []
 
     def row(endpoint, count, unit, hits=0, note=""):
@@ -83,7 +90,7 @@ def call_plan(options: Options, cache: Cache) -> dict:
         1,
         estimate_serp(options),
         int(serp is not None),
-        "Includes async AI Overview, depth, operators, and a PAA expansion allowance.",
+        f"Depth {options.top_n + 10} includes an exclusion buffer, async AI Overview, operators, and a PAA expansion allowance.",
     )
     hits = 0
     if known_pages is not None:
@@ -148,6 +155,100 @@ def check_public_destination(url: str):
         raise APIError("Fallback destination could not be validated.") from None
 
 
+META_REFRESH = re.compile(
+    r"<meta[^>]+content=[\"']\s*\d+\s*;\s*url=([^\"'>]+)", re.IGNORECASE
+)
+
+
+def resolve_google_url(url: str, cache: Cache, http: httpx.Client | None = None,
+                       allow_network: bool = True) -> str | None:
+    """Follow Google redirects only. Validate the public exit before returning it."""
+    if not google_url(url):
+        return url
+    cached = cache.read("google_redirect", {"url": url})
+    if cached and public_url(cached.get("url", "")) and not google_url(cached["url"]):
+        return cached["url"]
+    if not allow_network:
+        return None
+    own_http = http is None
+    http = http or httpx.Client(timeout=30, trust_env=False, follow_redirects=False)
+    current, seen = url, set()
+    try:
+        for _ in range(9):
+            check_public_destination(current)
+            if not google_url(current):
+                cache.write("google_redirect", {"url": url}, {"url": current})
+                return current
+            if current in seen:
+                raise APIError("Google redirect loop.")
+            seen.add(current)
+            with http.stream("GET", current, auth=None, follow_redirects=False) as response:
+                # httpx raises on 3xx too, so read the redirect before status checks.
+                if response.is_redirect and response.headers.get("location"):
+                    current = urljoin(current, response.headers["location"])
+                    continue
+                # Google sometimes answers with an interstitial page that carries a
+                # meta refresh to the next hop instead of a 3xx.
+                body = b""
+                for chunk in response.iter_bytes():
+                    body += chunk
+                    if len(body) > 65536:
+                        break
+                match = META_REFRESH.search(body.decode("utf-8", errors="replace"))
+                if response.status_code != 200 or not match:
+                    raise APIError("Google URL did not redirect to a source page.")
+                current = urljoin(current, html.unescape(match[1]).strip("'\" "))
+        raise APIError("Google redirect exceeded eight hops.")
+    except httpx.HTTPError:
+        raise APIError("Google redirect HTTP failure.") from None
+    finally:
+        if own_http:
+            http.close()
+
+
+def prepare_serp_urls(raw: dict, cache: Cache, domains: tuple[str, ...],
+                      http: httpx.Client | None = None, allow_network: bool = True) -> tuple[dict, list[dict], bool]:
+    """Resolve before selection; leave the raw request-hash cache unchanged."""
+    prepared, warnings, pending = deepcopy(raw), [], False
+
+    def resolve(item):
+        nonlocal pending
+        url = item.get("url") or ""
+        if not public_url(url):
+            return
+        try:
+            target = resolve_google_url(url, cache, http, allow_network)
+            if target is None:
+                pending = True
+                return
+            item["url"] = canonical_url(target)
+            item["domain"] = urlsplit(target).hostname
+        except APIError as exc:
+            item["_resolution_failed"] = True
+            hint = domain_hint(item, domains)
+            warnings.append({"stage": "url_resolution", "url": "https://google.com/goto",
+                             "fallback_domain": hint, "reason": str(exc)})
+
+    def references(node):
+        if isinstance(node, dict):
+            for ref in node.get("references") or []:
+                resolve(ref)
+            for key, value in node.items():
+                if key != "references":
+                    references(value)
+        elif isinstance(node, list):
+            for child in node:
+                references(child)
+
+    for result in results(prepared):
+        for item in result.get("items") or []:
+            if item.get("type") == "organic":
+                resolve(item)
+            elif item.get("type") == "ai_overview":
+                references(item)
+    return prepared, warnings, pending
+
+
 def fetch_readable(url: str, title: str, http: httpx.Client | None = None) -> Page:
     own_http = http is None
     http = http or httpx.Client(timeout=30, trust_env=False, follow_redirects=False)
@@ -208,11 +309,12 @@ def build_brief(
             f"Plan estimate ${plan['estimated_cost_usd']} exceeds --max-cost ${options.max_cost}."
         )
     raw_serp = client.call(SERP, serp_payload(options), estimate_serp(options))
+    raw_serp, warnings, _ = prepare_serp_urls(raw_serp, client.cache, options.excluded_domains, fallback_http)
     candidates, skipped = organic_pages(
         raw_serp, options.top_n, options.excluded_domains
     )
     queries, overviews = serp_features(raw_serp)
-    pages, warnings = [], []
+    pages = []
     for candidate in candidates:
         url, title = candidate["url"], candidate["title"]
         local = client.cache.read("local_readability", {"url": url})
@@ -258,12 +360,15 @@ def build_brief(
                     "reason": "No fan_out_queries returned despite forced web search.",
                 }
             )
+        elif len(merge_queries(fanout)) == 1 and " ".join(fanout[0]["query"].casefold().split()).rstrip("?.!") == " ".join(options.keyword.casefold().split()).rstrip("?.!"):
+            warnings.append({"stage": "llm_fanout", "reason": "The only LLM fan-out query equals the keyword; no expanded queries were returned."})
     computed = analyze(
         pages,
         merge_queries(queries),
         analyzer or Analyzer(),
         options.target_words,
         options.min_page_fraction,
+        options.keyword,
     )
     settings = asdict(options)
     settings["llm_estimate"] = str(options.llm_estimate)

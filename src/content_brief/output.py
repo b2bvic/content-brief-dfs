@@ -6,6 +6,8 @@ import csv
 import json
 from pathlib import Path
 
+from .analysis import TERM_TABLE_ROWS, shown_terms, shown_topics
+
 
 def cell(value) -> str:
     return str(value).replace("|", "\\|").replace("\n", " ")
@@ -45,11 +47,13 @@ def render_markdown(brief: dict) -> str:
     lines += [
         "## Terms",
         "",
-        "Use ranges scale the interquartile competitor density to the target length. Only pages using a term enter its range.",
+        "Each range is the middle half of competitor usage, scaled to the target length. Only pages that use a term enter its range. A range describes the competitors; it is not a quota.",
+        "",
+        f"Top {min(TERM_TABLE_ROWS, len(brief['terms']))} of {len(brief['terms'])} terms. The full list is in `terms.csv`.",
         "",
     ]
     lines += table(
-        ["Term (lemma)", "Pages", "Recommended uses", "Uses per 1,000 words by page"],
+        ["Term (lemma)", "Pages", "Competitor range (scaled to target)", "Uses per 1,000 words by page"],
         [
             [
                 t["term"],
@@ -57,13 +61,13 @@ def render_markdown(brief: dict) -> str:
                 f"{t['recommended_min']}-{t['recommended_max']}",
                 ", ".join(map(str, t["uses_per_1000_words"])),
             ]
-            for t in brief["terms"]
+            for t in shown_terms(brief)
         ],
     )
     lines += [
         "## Entities",
         "",
-        "HEURISTIC labels are capitalized phrase candidates. NOUN_CHUNK labels are noun phrases, not verified entities.",
+        "Named entities on enough competitor pages to clear the page threshold. HEURISTIC labels are capitalized phrase candidates, not verified entities.",
         "",
     ]
     lines += table(
@@ -79,7 +83,13 @@ def render_markdown(brief: dict) -> str:
         "Heading clusters use token overlap. Query matches are lexical evidence, not proof that a page answers a question.",
         "",
     ]
-    for topic in brief["topics"]:
+    topics = shown_topics(brief)
+    if len(topics) < len(brief["topics"]):
+        lines += [
+            f"{len(topics)} of {len(brief['topics'])} heading clusters appear on two or more pages. All clusters are in `brief.json`.",
+            "",
+        ]
+    for topic in topics:
         lines += [
             f"### {topic['label']} ({topic['pages_used']}/{n} pages)",
             "",
