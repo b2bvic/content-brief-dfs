@@ -313,3 +313,15 @@ def test_listicle_numbers_and_entity_debris_are_cleaned():
     labels = {e["entity"] for e in result["entities"]}
     assert "Loopex Digital" in labels
     assert not any(l.endswith("&") or not l[0].isalnum() for l in labels)
+
+
+def test_long_fanout_queries_match_whole_page_facets():
+    filler = " ".join(["filler"] * 120)
+    pages = [page(f"Use salt to scrub. {filler} Soap is fine. {filler} Rust needs vinegar. Dry it.", 1)]
+    result = analyze(
+        pages,
+        [query_row("cast iron cleaning salt soap rust vinegar dry routine", "chatgpt:howto")],
+        Analyzer(False),
+        keyword="cast iron",
+    )
+    assert not result["queries"][0]["gap"]

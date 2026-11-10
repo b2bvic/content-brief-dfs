@@ -388,6 +388,7 @@ def map_queries(
     keyword: set[str] = frozenset(),
 ) -> list[dict]:
     page_windows = {p.url: text_windows(p.text, analyzer) for p in pages}
+    page_tokens = {p.url: analyzer.content_tokens(p.text) for p in pages}
     output = []
     for row in queries:
         tokens = without_keyword(analyzer.content_tokens(row["query"]), keyword)
@@ -400,11 +401,17 @@ def map_queries(
             )
         ]
         urls = {url for c in matched for url in c["pages"]}
-        urls.update(
-            url
-            for url, windows in page_windows.items()
-            if any(covers(tokens, window) for window in windows)
-        )
+        # A short question must be answered in one passage. A long search string
+        # (ChatGPT fan-out) lists several facets; the page must cover them, not
+        # one 80-word window.
+        if len(tokens) <= 4:
+            urls.update(
+                url
+                for url, windows in page_windows.items()
+                if any(covers(tokens, window) for window in windows)
+            )
+        else:
+            urls.update(url for url, words in page_tokens.items() if covers(tokens, words))
         output.append(
             {
                 **row,
